@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { baseURL } from "@/baseUrl";
 import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
@@ -29,17 +30,20 @@ function widgetMeta(widget: ContentWidget) {
 }
 
 const handler = createMcpHandler(async (server) => {
-  const html = await getAppsSdkCompatibleHtml(baseURL, "/");
+  const html = await getAppsSdkCompatibleHtml(
+    "https://auxee-2-0.vercel.app",
+    "/"
+  );
 
-  const contentWidget: ContentWidget = {
+  const contentWidget = {
     id: "show_content",
     title: "Show Content",
     templateUri: "ui://widget/content-template.html",
     invoking: "Loading content...",
     invoked: "Content loaded",
-    html: html,
+    html,
     description: "Displays the homepage content",
-    widgetDomain: "https://nextjs.org/docs",
+    widgetDomain: "https://auxee-2-0.vercel.app",
   };
   server.registerResource(
     "content-widget",
@@ -70,32 +74,36 @@ const handler = createMcpHandler(async (server) => {
   );
 
   server.registerTool(
-    contentWidget.id,
-    {
-      title: contentWidget.title,
-      description:
-        "Fetch and display the homepage content with the name of the user",
-      inputSchema: {
-        name: z.string().describe("The name of the user to display on the homepage"),
-      },
-      _meta: widgetMeta(contentWidget),
+  "list_notebooks",
+  {
+    title: "List Notebooks",
+    description: "Displays all available notebooks inside the iframe widget",
+    inputSchema: {},
+    _meta: {
+      ...widgetMeta(contentWidget),
+      "openai/outputTemplate": contentWidget.templateUri,
+      "openai/resultCanProduceWidget": true,
     },
-    async ({ name }) => {
-      return {
-        content: [
-          {
-            type: "text",
-            text: name,
-          },
-        ],
-        structuredContent: {
-          name: name,
-          timestamp: new Date().toISOString(),
-        },
-        _meta: widgetMeta(contentWidget),
-      };
-    }
-  );
+  },
+  async () => {
+    const notebooks = [
+      { id: 1, name: "🧠 AI Research Notes", date: "Nov 3, 2025" },
+      { id: 2, name: "🎨 UX Design Experiments", date: "Oct 25, 2025" },
+      { id: 3, name: "📈 Product Strategy Draft", date: "Oct 14, 2025" },
+      { id: 4, name: "🧾 Meeting Summary Logs", date: "Sep 30, 2025" },
+    ];
+
+    return {
+      content: [],
+      structuredContent: { notebooks },
+      _meta: {
+        ...widgetMeta(contentWidget),
+        "openai/outputTemplate": contentWidget.templateUri,
+        "openai/resultCanProduceWidget": true,
+      },
+    };
+  }
+);
 });
 
 export const GET = handler;
